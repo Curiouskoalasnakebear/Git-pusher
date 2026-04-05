@@ -167,39 +167,6 @@
     align-items: end;
   }
 
-  .mode-toggle {
-    display: flex;
-    background: var(--bg);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    overflow: hidden;
-    margin-bottom: 1.25rem;
-  }
-
-  .mode-btn {
-    flex: 1;
-    padding: 0.65rem;
-    background: none;
-    border: none;
-    color: var(--muted);
-    font-family: var(--mono);
-    font-size: 0.75rem;
-    cursor: pointer;
-    transition: all 0.2s;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-  }
-
-  .mode-btn.active {
-    background: var(--accent-dim);
-    color: var(--accent);
-  }
-
-  label span.mode-label {
-    display: block;
-    margin-bottom: 0.4rem;
-  }
-
   textarea {
     resize: vertical;
     min-height: 140px;
@@ -315,14 +282,6 @@
   </div>
 
   <div class="field">
-    <label>Mode</label>
-    <div class="mode-toggle">
-      <button class="mode-btn active" id="mode-new" onclick="setMode('new')">New file</button>
-      <button class="mode-btn" id="mode-update" onclick="setMode('update')">Update existing</button>
-    </div>
-  </div>
-
-  <div class="field">
     <label>Content</label>
     <textarea id="content" placeholder="# My context&#10;&#10;Start writing your markdown here..." oninput="updateCount()"></textarea>
     <div class="char-count"><span id="char-count">0</span> chars</div>
@@ -334,13 +293,28 @@
 </div>
 
 <script>
-  let mode = 'new';
+  // Load saved values from localStorage on startup
+  window.addEventListener('DOMContentLoaded', () => {
+    const token = localStorage.getItem('gist_token');
+    const gistId = localStorage.getItem('gist_id');
+    const filename = localStorage.getItem('gist_filename');
+    if (token) document.getElementById('token-input').value = token;
+    if (gistId) document.getElementById('gist-id').value = gistId;
+    if (filename) document.getElementById('filename').value = filename;
+  });
 
-  function setMode(m) {
-    mode = m;
-    document.getElementById('mode-new').classList.toggle('active', m === 'new');
-    document.getElementById('mode-update').classList.toggle('active', m === 'update');
-  }
+  // Auto-save token and gist ID as user types
+  document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('token-input').addEventListener('input', e => {
+      localStorage.setItem('gist_token', e.target.value);
+    });
+    document.getElementById('gist-id').addEventListener('input', e => {
+      localStorage.setItem('gist_id', e.target.value);
+    });
+    document.getElementById('filename').addEventListener('input', e => {
+      localStorage.setItem('gist_filename', e.target.value);
+    });
+  });
 
   function toggleToken() {
     const input = document.getElementById('token-input');
@@ -356,6 +330,7 @@
 
   function clearToken() {
     document.getElementById('token-input').value = '';
+    localStorage.removeItem('gist_token');
   }
 
   function updateCount() {
@@ -384,6 +359,7 @@
     btn.textContent = 'Pushing...';
 
     try {
+      // Always PATCH to overwrite the existing file in the gist
       const body = { files: { [filename]: { content } } };
 
       const res = await fetch(`https://api.github.com/gists/${gistId}`, {
